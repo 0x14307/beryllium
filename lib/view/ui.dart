@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'terminal.dart';
-import 'settings.dart';
 import 'device.dart';
 
 class navUI extends StatefulWidget {
@@ -12,12 +11,29 @@ class navUI extends StatefulWidget {
 }
 
 class _navUIState extends State<navUI> {
-  int _selectedIndex = 0;
+  final List<RemoteDevice> _devices = [];
+  int? _selectedIndex;
   NavigationRailLabelType labelType = NavigationRailLabelType.all;
   double groupAlignment = -1.0;
 
+  Future<void> _addDevice() async {
+    final device = await showDialog<RemoteDevice>(
+      context: context,
+      builder: (context) => const deviceUI(),
+    );
+    if (!mounted || device == null) return;
+
+    setState(() {
+      _devices.add(device);
+      _selectedIndex = _devices.length - 1;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final selectedDevice =
+        _selectedIndex == null ? null : _devices[_selectedIndex!];
+
     return Scaffold(
       appBar: AppBar(
         bottom: TabBar(
@@ -31,7 +47,6 @@ class _navUIState extends State<navUI> {
         child: Row(
           children: <Widget>[
             NavigationRail(
-              //TODO Add items (such as devices) pragmatically or find a way to do so.
               selectedIndex: _selectedIndex,
               groupAlignment: groupAlignment,
               onDestinationSelected: (int index) {
@@ -44,47 +59,33 @@ class _navUIState extends State<navUI> {
                 child: Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
-                    padding: EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.only(bottom: 20),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         IconButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const deviceUI(),
-                              ),
-                            );
-                          },
-                          icon: Icon(Icons.add),
-                        ), // addDevice()
-                        IconButton(onPressed: null, icon: Icon(Icons.settings)),
+                          onPressed: _addDevice,
+                          icon: const Icon(Icons.add),
+                        ),
+                        const IconButton(
+                          onPressed: null,
+                          icon: Icon(Icons.settings),
+                        ),
                       ],
                     ),
                   ),
                 ),
               ),
-              destinations: const <NavigationRailDestination>[
-                NavigationRailDestination(
-                  icon: Icon(Icons.favorite_border),
-                  selectedIcon: Icon(Icons.favorite),
-                  label: Text('First'),
-                ),
-                NavigationRailDestination(
-                  icon: Badge(child: Icon(Icons.bookmark_border)),
-                  selectedIcon: Badge(child: Icon(Icons.book)),
-                  label: Text('Second'),
-                ),
-                NavigationRailDestination(
-                  icon: Badge(label: Text('4'), child: Icon(Icons.star_border)),
-                  selectedIcon: Badge(
-                    label: Text('4'),
-                    child: Icon(Icons.star),
-                  ),
-                  label: Text('Third'),
-                ),
-              ],
+              destinations:
+                  _devices
+                      .map(
+                        (device) => NavigationRailDestination(
+                          icon: const Icon(Icons.devices_other),
+                          selectedIcon: const Icon(Icons.devices),
+                          label: Text(device.host),
+                        ),
+                      )
+                      .toList(),
             ),
             const VerticalDivider(thickness: 1, width: 1),
             // This is the main content.
@@ -96,7 +97,7 @@ class _navUIState extends State<navUI> {
                     child: TabBarView(
                       children: <Widget>[
                         Center(child: Text("Hello!")),
-                        Center(child: CreateTerm()),
+                        CreateTerm(device: selectedDevice),
                       ],
                     ),
                   ),

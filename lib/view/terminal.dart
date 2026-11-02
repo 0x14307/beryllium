@@ -1,92 +1,121 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
+
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/material.dart';
 import 'package:xterm/xterm.dart';
 
-const host = 'localhost';
-const port = 22;
-const username = 'null';
-const password = 'null';
+import 'device.dart';
 
 class CreateTerm extends StatelessWidget {
-  const CreateTerm({super.key});
+  const CreateTerm({super.key, required this.device});
+
+  final RemoteDevice? device;
 
   @override
   Widget build(BuildContext context) {
-    return TermPage();
+    final device = this.device;
+    if (device == null) {
+      return const Center(child: Text('Add or select a device to connect.'));
+    }
+
+    return TermPage(key: ObjectKey(device), device: device);
   }
 }
 
 class TermPage extends StatefulWidget {
-  TermPage({super.key});
+  const TermPage({super.key, required this.device});
+
+  final RemoteDevice device;
 
   @override
-  // ignore: library_private_types_in_public_api
-  _TermPageState createState() => _TermPageState();
+  State<TermPage> createState() => _TermPageState();
 }
 
 class _TermPageState extends State<TermPage> {
-  late final terminal = Terminal();
-  // We have to set FocusNode or else the compiler bitches at us for "no viewID"
-  late final FocusNode _focusNode = FocusNode();
+  final Terminal terminal = Terminal();
+  final FocusNode _focusNode = FocusNode();
+  SSHClient? _client;
+  SSHSession? _session;
 
   @override
   void initState() {
     super.initState();
-    initTerminal();
+    unawaited(_connect());
   }
 
-  Future<void> initTerminal() async {
-    terminal.write('Connecting...\r\n');
+  Future<void> _connect() async {
+    final device = widget.device;
+    terminal.write('Connecting to ${device.host}:${device.port}...\r\n');
 
-    final client = SSHClient(
-      await SSHSocket.connect(host, port),
-      username: username,
-      onPasswordRequest: () => password,
-    );
+    try {
+      final socket = await SSHSocket.connect(device.host, device.port);
+      final client = SSHClient(
+        socket,
+        username: device.username,
+        onPasswordRequest: () => device.password,
+      );
+      if (!mounted) {
+        client.close();
+        return;
+      }
+      _client = client;
 
-    terminal.write('Connected\r\n');
+      final session = await client.shell(
+        pty: SSHPtyConfig(
+          width: terminal.viewWidth,
+          height: terminal.viewHeight,
+        ),
+      );
+      if (!mounted) {
+        session.close();
+        client.close();
+        return;
+      }
+      _session = session;
 
-    final session = await client.shell(
-      pty: SSHPtyConfig(width: terminal.viewWidth, height: terminal.viewHeight),
-    );
+      terminal.buffer.clear();
+      terminal.buffer.setCursor(0, 0);
+      terminal.write('Connected to ${device.host}.\r\n');
 
-    terminal.buffer.clear();
-    terminal.buffer.setCursor(0, 0);
+      terminal.onResize = (width, height, pixelWidth, pixelHeight) {
+        session.resizeTerminal(width, height, pixelWidth, pixelHeight);
+      };
+      terminal.onOutput = (data) {
+        session.write(utf8.encode(data));
+      };
 
-    terminal.onResize = (width, height, pixelWidth, pixelHeight) {
-      session.resizeTerminal(width, height, pixelWidth, pixelHeight);
-    };
+      session.stdout
+          .cast<List<int>>()
+          .transform(const Utf8Decoder())
+          .listen(terminal.write);
+      session.stderr
+          .cast<List<int>>()
+          .transform(const Utf8Decoder())
+          .listen(terminal.write);
+    } catch (error) {
+      if (mounted) {
+        terminal.write('Connection failed: $error\r\n');
+      }
+    }
+  }
 
-    terminal.onOutput = (data) {
-      session.write(utf8.encode(data));
-    };
-
-    session.stdout
-        .cast<List<int>>()
-        .transform(Utf8Decoder())
-        .listen(terminal.write);
-
-    session.stderr
-        .cast<List<int>>()
-        .transform(Utf8Decoder())
-        .listen(terminal.write);
+  @override
+  void dispose() {
+    terminal.onOutput = null;
+    _session?.close();
+    _client?.close();
+    _focusNode.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: TerminalView(
-            terminal,
-            autofocus: true,
-            hardwareKeyboardOnly: true,
-            focusNode: _focusNode,
-          ),
-        ),
-      ],
+    return TerminalView(
+      terminal,
+      autofocus: true,
+      hardwareKeyboardOnly: true,
+      focusNode: _focusNode,
     );
   }
 }
