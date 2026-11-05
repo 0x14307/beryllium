@@ -16,7 +16,7 @@ class CreateTerm extends StatelessWidget {
   Widget build(BuildContext context) {
     final device = this.device;
     if (device == null) {
-      return const Center(child: Text('Add or select a device to connect.'));
+      return const Center(child: Text('Select a device to connect.'));
     }
 
     return TermPage(key: ObjectKey(device), device: device);

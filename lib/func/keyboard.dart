@@ -10,23 +10,24 @@ class VirtualKeyboardView extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: keyboard,
-      builder: (context, child) => ToggleButtons(
-        children: [Text('Ctrl'), Text('Alt'), Text('Shift')],
-        isSelected: [keyboard.ctrl, keyboard.alt, keyboard.shift],
-        onPressed: (index) {
-          switch (index) {
-            case 0:
-              keyboard.ctrl = !keyboard.ctrl;
-              break;
-            case 1:
-              keyboard.alt = !keyboard.alt;
-              break;
-            case 2:
-              keyboard.shift = !keyboard.shift;
-              break;
-          }
-        },
-      ),
+      builder:
+          (context, child) => ToggleButtons(
+            children: [Text('Ctrl'), Text('Alt'), Text('Shift')],
+            isSelected: [keyboard.ctrl, keyboard.alt, keyboard.shift],
+            onPressed: (index) {
+              switch (index) {
+                case 0:
+                  keyboard.ctrl = !keyboard.ctrl;
+                  break;
+                case 1:
+                  keyboard.alt = !keyboard.alt;
+                  break;
+                case 2:
+                  keyboard.shift = !keyboard.shift;
+                  break;
+              }
+            },
+          ),
     );
   }
 }
@@ -71,10 +72,12 @@ class VirtualKeyboard extends TerminalInputHandler with ChangeNotifier {
 
   @override
   String? call(TerminalKeyboardEvent event) {
-    return _inputHandler.call(event.copyWith(
-      ctrl: event.ctrl || _ctrl,
-      shift: event.shift || _shift,
-      alt: event.alt || _alt,
-    ));
+    return _inputHandler.call(
+      event.copyWith(
+        ctrl: event.ctrl || _ctrl,
+        shift: event.shift || _shift,
+        alt: event.alt || _alt,
+      ),
+    );
   }
 }

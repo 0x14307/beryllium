@@ -26,7 +26,7 @@ class _deviceUIState extends State<deviceUI> {
   final _userController = TextEditingController();
   final _hostController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _portController = TextEditingController(text: 'Default: 22');
+  final _portController = TextEditingController();
 
   @override
   void dispose() {
