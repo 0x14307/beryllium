@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:forui/forui.dart';
 
 class RemoteDevice {
   const RemoteDevice({
@@ -12,10 +13,36 @@ class RemoteDevice {
   final String host;
   final String password;
   final int port;
+
+  Map<String, Object> toJson() => {
+    'username': username,
+    'host': host,
+    'password': password,
+    'port': port,
+  };
+
+  factory RemoteDevice.fromJson(Object? value) {
+    if (value is! Map<String, dynamic> ||
+        value['username'] is! String ||
+        value['host'] is! String ||
+        value['password'] is! String ||
+        value['port'] is! int) {
+      throw const FormatException('Invalid saved device');
+    }
+
+    return RemoteDevice(
+      username: value['username'] as String,
+      host: value['host'] as String,
+      password: value['password'] as String,
+      port: value['port'] as int,
+    );
+  }
 }
 
 class deviceUI extends StatefulWidget {
-  const deviceUI({super.key});
+  const deviceUI({required this.animation, super.key});
+
+  final Animation<double> animation;
 
   @override
   State<deviceUI> createState() => _deviceUIState();
@@ -53,51 +80,75 @@ class _deviceUIState extends State<deviceUI> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add Device'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _userController,
-                decoration: const InputDecoration(labelText: 'User'),
-                validator: _requiredValidator,
+    return FDialog(
+      animation: widget.animation,
+      builder:
+          (context, style) => Padding(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('Add Device', style: style.titleTextStyle),
+                    const SizedBox(height: 16),
+                    FTextFormField(
+                      control: FTextFieldControl.managed(
+                        controller: _userController,
+                      ),
+                      label: const Text('User'),
+                      validator: _requiredValidator,
+                    ),
+                    const SizedBox(height: 12),
+                    FTextFormField(
+                      control: FTextFieldControl.managed(
+                        controller: _hostController,
+                      ),
+                      label: const Text('Host'),
+                      validator: _requiredValidator,
+                    ),
+                    const SizedBox(height: 12),
+                    FTextFormField(
+                      control: FTextFieldControl.managed(
+                        controller: _passwordController,
+                      ),
+                      label: const Text('Password'),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 12),
+                    FTextFormField(
+                      control: FTextFieldControl.managed(
+                        controller: _portController,
+                      ),
+                      label: const Text('Port'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (_parsePort(value) == null) {
+                          return 'Enter a port from 1 to 65535';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        FButton(
+                          variant: FButtonVariant.ghost,
+                          onPress: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                        const SizedBox(width: 8),
+                        FButton(onPress: _addDevice, child: const Text('Add')),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              TextFormField(
-                controller: _hostController,
-                decoration: const InputDecoration(labelText: 'Host'),
-                validator: _requiredValidator,
-              ),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Password'),
-              ),
-              TextFormField(
-                controller: _portController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Port'),
-                validator: (value) {
-                  if (_parsePort(value) == null) {
-                    return 'Enter a port from 1 to 65535';
-                  }
-                  return null;
-                },
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        TextButton(onPressed: _addDevice, child: const Text('Add')),
-      ],
     );
   }
 

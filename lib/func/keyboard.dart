@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:forui/forui.dart';
 import 'package:xterm/xterm.dart';
 
 class VirtualKeyboardView extends StatelessWidget {
@@ -11,25 +12,42 @@ class VirtualKeyboardView extends StatelessWidget {
     return AnimatedBuilder(
       animation: keyboard,
       builder:
-          (context, child) => ToggleButtons(
-            children: [Text('Ctrl'), Text('Alt'), Text('Shift')],
-            isSelected: [keyboard.ctrl, keyboard.alt, keyboard.shift],
-            onPressed: (index) {
-              switch (index) {
-                case 0:
-                  keyboard.ctrl = !keyboard.ctrl;
-                  break;
-                case 1:
-                  keyboard.alt = !keyboard.alt;
-                  break;
-                case 2:
-                  keyboard.shift = !keyboard.shift;
-                  break;
-              }
-            },
+          (context, child) => Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _modifierButton(
+                label: 'Ctrl',
+                selected: keyboard.ctrl,
+                onPress: () => keyboard.ctrl = !keyboard.ctrl,
+              ),
+              const SizedBox(width: 8),
+              _modifierButton(
+                label: 'Alt',
+                selected: keyboard.alt,
+                onPress: () => keyboard.alt = !keyboard.alt,
+              ),
+              const SizedBox(width: 8),
+              _modifierButton(
+                label: 'Shift',
+                selected: keyboard.shift,
+                onPress: () => keyboard.shift = !keyboard.shift,
+              ),
+            ],
           ),
     );
   }
+
+  Widget _modifierButton({
+    required String label,
+    required bool selected,
+    required VoidCallback onPress,
+  }) => FButton(
+    variant: FButtonVariant.outline,
+    size: FButtonSizeVariant.sm,
+    selected: selected,
+    onPress: onPress,
+    child: Text(label),
+  );
 }
 
 class VirtualKeyboard extends TerminalInputHandler with ChangeNotifier {

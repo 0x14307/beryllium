@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:forui/forui.dart';
 
 import '../func/files.dart';
 import 'device.dart';
@@ -205,7 +206,7 @@ class _FileTreeState extends State<FileTree> {
     return Row(
       children: [
         Expanded(child: _buildLocalPane()),
-        const VerticalDivider(width: 1),
+        const FDivider(axis: Axis.vertical),
         Expanded(child: _buildRemotePane(device)),
       ],
     );
@@ -214,29 +215,32 @@ class _FileTreeState extends State<FileTree> {
   Widget _buildLocalPane() {
     return Column(
       children: [
-        ListTile(
-          leading: IconButton(
-            tooltip: 'Parent directory',
-            onPressed:
-                _localParentPath == null
-                    ? null
-                    : () => _openLocalDirectory(_localParentPath!),
-            icon: const Icon(Icons.arrow_upward),
-          ),
+        FHeader(
           title: const Text('Local files'),
-          subtitle: Text(
-            _localPath,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: IconButton(
-            tooltip: 'Refresh local files',
-            onPressed:
-                _isLocalLoading ? null : () => _openLocalDirectory(_localPath),
-            icon: const Icon(Icons.refresh),
-          ),
+          suffixes: [
+            FHeaderAction(
+              icon: const Icon(FLucideIcons.arrowUp),
+              semanticsTooltip: 'Parent directory',
+              onPress:
+                  _localParentPath == null
+                      ? null
+                      : () => _openLocalDirectory(_localParentPath!),
+            ),
+            FHeaderAction(
+              icon: const Icon(FLucideIcons.refreshCw),
+              semanticsTooltip: 'Refresh local files',
+              onPress:
+                  _isLocalLoading
+                      ? null
+                      : () => _openLocalDirectory(_localPath),
+            ),
+          ],
         ),
-        const Divider(height: 1),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(_localPath, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+        const FDivider(),
         Expanded(child: _buildLocalContents()),
       ],
     );
@@ -245,38 +249,45 @@ class _FileTreeState extends State<FileTree> {
   Widget _buildRemotePane(RemoteDevice? device) {
     return Column(
       children: [
-        ListTile(
-          leading: IconButton(
-            tooltip: 'Parent directory',
-            onPressed:
-                _parentPath == null ? null : () => _openDirectory(_parentPath!),
-            icon: const Icon(Icons.arrow_upward),
-          ),
+        FHeader(
           title: Text(device?.host ?? 'Remote files'),
-          subtitle: Text(
+          suffixes: [
+            FHeaderAction(
+              icon: const Icon(FLucideIcons.arrowUp),
+              semanticsTooltip: 'Parent directory',
+              onPress:
+                  _parentPath == null
+                      ? null
+                      : () => _openDirectory(_parentPath!),
+            ),
+            FHeaderAction(
+              icon: const Icon(FLucideIcons.refreshCw),
+              semanticsTooltip: 'Refresh remote files',
+              onPress:
+                  device == null || _isLoading
+                      ? null
+                      : () {
+                        final path = _currentPath;
+                        if (path == null) {
+                          unawaited(_connect());
+                        } else {
+                          unawaited(_openDirectory(path));
+                        }
+                      },
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
             device == null
                 ? 'Select a device to connect.'
                 : (_currentPath ?? 'Connecting...'),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          trailing: IconButton(
-            tooltip: 'Refresh remote files',
-            onPressed:
-                device == null || _isLoading
-                    ? null
-                    : () {
-                      final path = _currentPath;
-                      if (path == null) {
-                        unawaited(_connect());
-                      } else {
-                        unawaited(_openDirectory(path));
-                      }
-                    },
-            icon: const Icon(Icons.refresh),
-          ),
         ),
-        const Divider(height: 1),
+        const FDivider(),
         Expanded(
           child:
               device == null
@@ -291,7 +302,7 @@ class _FileTreeState extends State<FileTree> {
 
   Widget _buildLocalContents() {
     if (_isLocalLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: FCircularProgress());
     }
     if (_localError != null) {
       return Center(
@@ -302,8 +313,8 @@ class _FileTreeState extends State<FileTree> {
             children: [
               Text('Could not load local directory: $_localError'),
               const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => _openLocalDirectory(_localPath),
+              FButton(
+                onPress: () => _openLocalDirectory(_localPath),
                 child: const Text('Retry'),
               ),
             ],
@@ -319,12 +330,12 @@ class _FileTreeState extends State<FileTree> {
       itemCount: _localEntries.length,
       itemBuilder: (context, index) {
         final entry = _localEntries[index];
-        return ListTile(
-          leading: Icon(
-            entry.isDirectory ? Icons.folder_outlined : Icons.insert_drive_file,
+        return FItem(
+          prefix: Icon(
+            entry.isDirectory ? FLucideIcons.folder : FLucideIcons.file,
           ),
           title: Text(entry.name),
-          onTap:
+          onPress:
               entry.isDirectory ? () => _openLocalDirectory(entry.path) : null,
         );
       },
@@ -333,7 +344,7 @@ class _FileTreeState extends State<FileTree> {
 
   Widget _buildContents() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: FCircularProgress());
     }
     if (_error != null) {
       return Center(
@@ -344,8 +355,8 @@ class _FileTreeState extends State<FileTree> {
             children: [
               Text('Could not load directory: $_error'),
               const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () {
+              FButton(
+                onPress: () {
                   final path = _currentPath;
                   if (path == null) {
                     unawaited(_connect());
@@ -368,12 +379,12 @@ class _FileTreeState extends State<FileTree> {
       itemCount: _entries.length,
       itemBuilder: (context, index) {
         final entry = _entries[index];
-        return ListTile(
-          leading: Icon(
-            entry.isDirectory ? Icons.folder_outlined : Icons.insert_drive_file,
+        return FItem(
+          prefix: Icon(
+            entry.isDirectory ? FLucideIcons.folder : FLucideIcons.file,
           ),
           title: Text(entry.name),
-          onTap: entry.isDirectory ? () => _openDirectory(entry.path) : null,
+          onPress: entry.isDirectory ? () => _openDirectory(entry.path) : null,
         );
       },
     );

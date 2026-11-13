@@ -8,5 +8,4 @@ Windows (not tested)
 MacOS (dont own a Mac)
 
 ## TODO
-- Fix up UI elements (maybe get off of Material?)
 - Translations

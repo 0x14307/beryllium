@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:forui/forui.dart';
+
 import 'view/ui.dart';
 
 void main() {
@@ -8,19 +10,31 @@ void main() {
 class Main extends StatelessWidget {
   const Main({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    final theme = FTheme.neutral.dark.desktop;
+
+    return WidgetsApp(
       title: 'beryllium',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          brightness: Brightness.dark,
-          seedColor: Colors.blue,
-          primary: Colors.lightBlue,
-        ),
-      ),
-      home: DefaultTabController(length: 2, child: navUI()),
+      color: theme.colors.background,
+      localizationsDelegates: FLocalizations.localizationsDelegates,
+      supportedLocales: FLocalizations.supportedLocales,
+      pageRouteBuilder:
+          <T>(settings, builder) => PageRouteBuilder<T>(
+            settings: settings,
+            pageBuilder: (context, animation, secondaryAnimation) {
+              return builder(context);
+            },
+          ),
+      builder: (context, child) {
+        return FTheme(
+          data: theme,
+          child: FToaster(
+            child: FTooltipGroup(child: child ?? const SizedBox.shrink()),
+          ),
+        );
+      },
+      home: navUI(),
     );
   }
 }
